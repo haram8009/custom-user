@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.core.paginator import Paginator
-from .models import Blog, Comment, Tag
+from .models import Blog, Comment, Tag, Like
 
 
 def home(request):
@@ -15,8 +15,9 @@ def detail(request, blog_id):
     blog = get_object_or_404(Blog, pk=blog_id)
     comments = Comment.objects.filter(blog=blog)
     tags = blog.tag.all()
+    likes = len(Like.objects.filter(blog=blog))
 
-    return render(request, 'detail.html', {'blog': blog, 'comments': comments, 'tags': tags})
+    return render(request, 'detail.html', {'blog': blog, 'comments': comments, 'tags': tags, 'likes':likes,})
 
 
 def new(request):
@@ -62,8 +63,10 @@ def update(request, blog_id):
 
 def delete(request, blog_id):
     delete_blog = get_object_or_404(Blog, pk=blog_id)
-    delete_blog.delete()
-    return redirect('home')
+    if request.user == delete_blog.author:
+        delete_blog.delete()
+        return redirect('home')
+    return redirect('detail', delete_blog.id)
 
 
 def create_comment(request, blog_id):
@@ -78,3 +81,18 @@ def create_comment(request, blog_id):
 def new_comment(request, blog_id):
     blog = get_object_or_404(Blog, pk=blog_id)
     return render(request, 'new_comment.html', {'blog': blog})
+
+
+def like(request, blog_id):
+    # 비로그인시 좋아요 못누르고 로그인하기로 이동
+    if request.user.is_anonymous:
+        return redirect("users:signin")
+    # 좋아요 한 적이 있으면 detail path로 이동
+    if Like.objects.filter(likedUser=request.user, blog_id=blog_id):
+        return redirect("detail", blog_id)
+    # 좋아요 한 적 없으면 Like 객체 만들기
+    like = Like()
+    like.blog = get_object_or_404(Blog, pk=blog_id)
+    like.likedUser = request.user
+    like.save()
+    return redirect('detail', blog_id)

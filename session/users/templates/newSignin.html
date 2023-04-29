@@ -1,0 +1,9 @@
+<h1>Signin page</h1>
+
+<form method="POST" action="{% url 'users:signin' %}">
+  {% csrf_token %}
+  {{ form }}
+    <input type='submit' value="signin"/>
+  </form>
+
+  <a href="{%url 'home'%}">home</a>
